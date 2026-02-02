@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Noter & Todo - Gratis online notesbog og opgaveliste | Noter.dk</title>
+    <meta name="description" content="Gratis online notesbog og todo-liste. Gem noter og opgaver lokalt i din browser. Ingen login krævet. Simpelt, hurtigt og privat.">
+    <meta name="keywords" content="noter online, todo liste, notesbog, opgaveliste, gratis noter app, huskeliste">
+    <link rel="canonical" href="https://noter.holstjensen.eu">
+    
+    <meta property="og:title" content="Noter & Todo - Gratis online notesbog">
+    <meta property="og:description" content="Gem noter og opgaver lokalt i din browser. Ingen login krævet.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="da_DK">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwindcss.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'note-amber': '#f59e0b',
+                        'note-yellow': '#eab308'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .note-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .note-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        }
+        .tab-btn.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #eab308 100%);
+            color: white;
+        }
+        .todo-item {
+            transition: all 0.3s;
+        }
+        .todo-item.completed {
+            opacity: 0.5;
+        }
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+        }
+        .drag-over {
+            border: 2px dashed #f59e0b;
+            background: #fef3c7;
+        }
+        .color-dot {
+            transition: transform 0.2s;
+        }
+        .color-dot:hover {
+            transform: scale(1.2);
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-amber-50 to-yellow-50 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <a href="/" class="text-2xl font-bold text-note-amber flex items-center gap-2">
+                    <span class="text-3xl">📝</span>
+                    Noter<span class="text-gray-400 font-normal">.dk</span>
+                </a>
+                <div class="flex gap-4 items-center">
+                    <span class="text-sm text-gray-500 hidden md:block">💾 Gemmes automatisk lokalt</span>
+                    <button onclick="exportData()" class="text-gray-600 hover:text-note-amber text-sm">
+                        📤 Eksporter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="py-8 px-4 text-center">
+        <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
+            Noter & Todo Liste
+        </h1>
+        <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+            Gem noter og opgaver direkte i din browser. Ingen login, ingen cloud - 100% privat.
+        </p>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 pb-20">
+        <!-- Tab Selector -->
+        <div class="flex justify-center gap-2 mb-8">
+            <button onclick="setTab('notes')" id="tab-notes" class="tab-btn active px-6 py-3 rounded-full font-medium border border-gray-200 bg-white shadow-sm transition-all">
+                📝 Noter
+            </button>
+            <button onclick="setTab('todos')" id="tab-todos" class="tab-btn px-6 py-3 rounded-full font-medium border border-gray-200 bg-white shadow-sm transition-all">
+                ✅ Todo Liste
+            </button>
+        </div>
+
+        <!-- Notes Section -->
+        <section id="notes-section">
+            <!-- Add Note -->
+            <div class="bg-white rounded-2xl p-6 shadow-xl mb-8">
+                <div class="flex gap-4 mb-4">
+                    <input type="text" id="note-title" placeholder="Titel (valgfri)" 
+                        class="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-note-amber">
+                    <div class="flex gap-2 items-center">
+                        <span class="text-sm text-gray-500">Farve:</span>
+                        <button onclick="setNoteColor('#fef3c7')" class="color-dot w-6 h-6 rounded-full bg-yellow-100 border-2 border-yellow-300"></button>
+                        <button onclick="setNoteColor('#dcfce7')" class="color-dot w-6 h-6 rounded-full bg-green-100 border-2 border-green-300"></button>
+                        <button onclick="setNoteColor('#dbeafe')" class="color-dot w-6 h-6 rounded-full bg-blue-100 border-2 border-blue-300"></button>
+                        <button onclick="setNoteColor('#fce7f3')" class="color-dot w-6 h-6 rounded-full bg-pink-100 border-2 border-pink-300"></button>
+                        <button onclick="setNoteColor('#f3e8ff')" class="color-dot w-6 h-6 rounded-full bg-purple-100 border-2 border-purple-300"></button>
+                    </div>
+                </div>
+                <textarea id="note-content" rows="4" placeholder="Skriv din note her..." 
+                    class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-note-amber resize-none"></textarea>
+                <div class="flex justify-end mt-4">
+                    <button onclick="addNote()" class="bg-note-amber hover:bg-amber-600 text-white px-6 py-3 rounded-xl font-medium transition-colors">
+                        ➕ Tilføj note
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Notes -->
+            <div class="mb-6">
+                <input type="text" id="search-notes" onkeyup="searchNotes()" placeholder="🔍 Søg i noter..."
+                    class="w-full px-6 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-note-amber bg-white">
+            </div>
+
+            <!-- Notes Grid -->
+            <div id="notes-grid" class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div id="no-notes" class="text-center py-12 text-gray-500 hidden">
+                <div class="text-5xl mb-4">📝</div>
+                <p>Ingen noter endnu. Opret din første note ovenfor!</p>
+            </div>
+        </section>
+
+        <!-- Todo Section -->
+        <section id="todos-section" class="hidden">
+            <!-- Add Todo -->
+            <div class="bg-white rounded-2xl p-6 shadow-xl mb-8">
+                <div class="flex gap-4">
+                    <input type="text" id="todo-input" placeholder="Tilføj ny opgave..." 
+                        onkeypress="if(event.key === 'Enter') addTodo()"
+                        class="flex-1 px-4 py-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-note-amber text-lg">
+                    <select id="todo-priority" class="px-4 py-4 border border-gray-200 rounded-lg">
+                        <option value="low">🟢 Lav</option>
+                        <option value="medium" selected>🟡 Normal</option>
+                        <option value="high">🔴 Høj</option>
+                    </select>
+                    <button onclick="addTodo()" class="bg-note-amber hover:bg-amber-600 text-white px-6 py-4 rounded-xl font-medium transition-colors">
+                        ➕ Tilføj
+                    </button>
+                </div>
+            </div>
+
+            <!-- Todo Stats -->
+            <div class="flex justify-between items-center mb-6 bg-white rounded-xl p-4 shadow">
+                <div class="flex gap-6">
+                    <span class="text-gray-600">📊 Total: <strong id="todo-total">0</strong></span>
+                    <span class="text-green-600">✅ Færdig: <strong id="todo-done">0</strong></span>
+                    <span class="text-amber-600">⏳ Tilbage: <strong id="todo-remaining">0</strong></span>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="filterTodos('all')" id="filter-all" class="px-3 py-1 rounded-lg bg-note-amber text-white text-sm">Alle</button>
+                    <button onclick="filterTodos('active')" id="filter-active" class="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm">Aktive</button>
+                    <button onclick="filterTodos('completed')" id="filter-completed" class="px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm">Færdige</button>
+                </div>
+            </div>
+
+            <!-- Todo List -->
+            <div id="todo-list" class="space-y-3">
+                <!-- Populated by JS -->
+            </div>
+            
+            <div id="no-todos" class="text-center py-12 text-gray-500 hidden">
+                <div class="text-5xl mb-4">✅</div>
+                <p>Ingen opgaver endnu. Tilføj din første opgave ovenfor!</p>
+            </div>
+
+            <!-- Clear Completed -->
+            <div class="mt-6 text-center">
+                <button onclick="clearCompleted()" id="clear-completed" class="text-gray-500 hover:text-red-500 text-sm hidden">
+                    🗑️ Ryd færdige opgaver
+                </button>
+            </div>
+        </section>
+
+        <!-- Info Section -->
+        <section class="mt-16 bg-white rounded-xl p-8 shadow-lg">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Om Noter.dk</h2>
+            <div class="prose text-gray-600 max-w-none">
+                <p class="mb-4">
+                    Noter.dk er en gratis online notesbog og todo-liste, der gemmer alt lokalt i din browser.
+                    Det betyder at dine data aldrig forlader din enhed - 100% privat og sikkert.
+                </p>
+                
+                <div class="grid md:grid-cols-2 gap-8 mt-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">📝 Noter funktioner:</h3>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Opret noter med titel og farve</li>
+                            <li>Søg i alle dine noter</li>
+                            <li>Rediger og slet noter</li>
+                            <li>Farvekodet organisering</li>
+                            <li>Eksporter alle noter som JSON</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2">✅ Todo funktioner:</h3>
+                        <ul class="list-disc list-inside space-y-1">
+                            <li>Tilføj opgaver med prioritet</li>
+                            <li>Marker opgaver som færdige</li>
+                            <li>Filtrer aktive/færdige</li>
+                            <li>Statistik over fremskridt</li>
+                            <li>Ryd færdige opgaver</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-amber-50 rounded-lg">
+                    <p class="text-amber-800">
+                        <strong>💡 Tip:</strong> Dine data gemmes i browserens localStorage. 
+                        Brug "Eksporter" funktionen for at lave backup af dine noter.
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 py-12">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div>
+                    <h3 class="font-bold text-gray-800 mb-4">📝 Noter.dk</h3>
+                    <p class="text-gray-600 text-sm">Gratis online notesbog og todo-liste. Alt gemmes lokalt - ingen login nødvendig.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-4">Andre værktøjer</h4>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li><a href="https://timer.holstjensen.eu" class="hover:text-note-amber">Timer & Stopur</a></li>
+                        <li><a href="https://citater.holstjensen.eu" class="hover:text-note-amber">Citater</a></li>
+                        <li><a href="https://enheder.holstjensen.eu" class="hover:text-note-amber">Enheder omregner</a></li>
+                        <li><a href="https://password.holstjensen.eu" class="hover:text-note-amber">Password generator</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-800 mb-4">Info</h4>
+                    <ul class="space-y-2 text-sm text-gray-600">
+                        <li><a href="https://privacy.holstjensen.eu" class="hover:text-note-amber">Privatlivspolitik</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-100 mt-8 pt-8 text-center text-sm text-gray-500">
+                © 2026 Noter.dk - Alle rettigheder forbeholdes
+            </div>
+        </div>
+    </footer>
+
+    <!-- Edit Note Modal -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">✏️ Rediger note</h3>
+            <input type="hidden" id="edit-note-id">
+            <input type="text" id="edit-note-title" placeholder="Titel" 
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg mb-4 focus:ring-2 focus:ring-note-amber">
+            <textarea id="edit-note-content" rows="6" placeholder="Indhold..." 
+                class="w-full px-4 py-3 border border-gray-200 rounded-lg mb-4 focus:ring-2 focus:ring-note-amber resize-none"></textarea>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeEditModal()" class="px-6 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 font-medium transition-colors">
+                    Annuller
+                </button>
+                <button onclick="saveEditedNote()" class="px-6 py-3 rounded-xl bg-note-amber hover:bg-amber-600 text-white font-medium transition-colors">
+                    💾 Gem
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let notes = JSON.parse(localStorage.getItem('notes') || '[]');
+        let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+        let currentTab = 'notes';
+        let currentNoteColor = '#fef3c7';
+        let todoFilter = 'all';
+        
+        // Tab switching
+        function setTab(tab) {
+            currentTab = tab;
+            document.getElementById('tab-notes').classList.toggle('active', tab === 'notes');
+            document.getElementById('tab-todos').classList.toggle('active', tab === 'todos');
+            document.getElementById('notes-section').classList.toggle('hidden', tab !== 'notes');
+            document.getElementById('todos-section').classList.toggle('hidden', tab !== 'todos');
+        }
+        
+        // Notes functions
+        function setNoteColor(color) {
+            currentNoteColor = color;
+            document.querySelectorAll('.color-dot').forEach(dot => {
+                dot.style.transform = dot.style.backgroundColor === color ? 'scale(1.2)' : 'scale(1)';
+            });
+        }
+        
+        function addNote() {
+            const title = document.getElementById('note-title').value.trim();
+            const content = document.getElementById('note-content').value.trim();
+            
+            if (!content) {
+                alert('Skriv noget indhold i din note!');
+                return;
+            }
+            
+            const note = {
+                id: Date.now(),
+                title: title || 'Uden titel',
+                content: content,
+                color: currentNoteColor,
+                created: new Date().toISOString(),
+                updated: new Date().toISOString()
+            };
+            
+            notes.unshift(note);
+            saveNotes();
+            renderNotes();
+            
+            // Clear inputs
+            document.getElementById('note-title').value = '';
+            document.getElementById('note-content').value = '';
+        }
+        
+        function deleteNote(id) {
+            if (confirm('Er du sikker på at du vil slette denne note?')) {
+                notes = notes.filter(n => n.id !== id);
+                saveNotes();
+                renderNotes();
+            }
+        }
+        
+        function editNote(id) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                document.getElementById('edit-note-id').value = id;
+                document.getElementById('edit-note-title').value = note.title;
+                document.getElementById('edit-note-content').value = note.content;
+                document.getElementById('edit-modal').classList.remove('hidden');
+            }
+        }
+        
+        function closeEditModal() {
+            document.getElementById('edit-modal').classList.add('hidden');
+        }
+        
+        function saveEditedNote() {
+            const id = parseInt(document.getElementById('edit-note-id').value);
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                note.title = document.getElementById('edit-note-title').value.trim() || 'Uden titel';
+                note.content = document.getElementById('edit-note-content').value.trim();
+                note.updated = new Date().toISOString();
+                saveNotes();
+                renderNotes();
+                closeEditModal();
+            }
+        }
+        
+        function searchNotes() {
+            renderNotes();
+        }
+        
+        function renderNotes() {
+            const query = document.getElementById('search-notes').value.toLowerCase();
+            const filteredNotes = query 
+                ? notes.filter(n => n.title.toLowerCase().includes(query) || n.content.toLowerCase().includes(query))
+                : notes;
+            
+            const grid = document.getElementById('notes-grid');
+            const noNotes = document.getElementById('no-notes');
+            
+            if (filteredNotes.length === 0) {
+                grid.innerHTML = '';
+                noNotes.classList.remove('hidden');
+                return;
+            }
+            
+            noNotes.classList.add('hidden');
+            grid.innerHTML = filteredNotes.map(note => `
+                <div class="note-card fade-in rounded-xl p-6 shadow-lg" style="background-color: ${note.color}">
+                    <div class="flex justify-between items-start mb-3">
+                        <h3 class="font-bold text-gray-800">${escapeHtml(note.title)}</h3>
+                        <div class="flex gap-2">
+                            <button onclick="editNote(${note.id})" class="text-gray-500 hover:text-gray-700" title="Rediger">✏️</button>
+                            <button onclick="deleteNote(${note.id})" class="text-gray-500 hover:text-red-500" title="Slet">🗑️</button>
+                        </div>
+                    </div>
+                    <p class="text-gray-700 whitespace-pre-wrap">${escapeHtml(note.content)}</p>
+                    <div class="mt-4 text-xs text-gray-500">
+                        ${formatDate(note.updated)}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function saveNotes() {
+            localStorage.setItem('notes', JSON.stringify(notes));
+        }
+        
+        // Todo functions
+        function addTodo() {
+            const input = document.getElementById('todo-input');
+            const text = input.value.trim();
+            const priority = document.getElementById('todo-priority').value;
+            
+            if (!text) return;
+            
+            const todo = {
+                id: Date.now(),
+                text: text,
+                priority: priority,
+                completed: false,
+                created: new Date().toISOString()
+            };
+            
+            todos.unshift(todo);
+            saveTodos();
+            renderTodos();
+            input.value = '';
+        }
+        
+        function toggleTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                saveTodos();
+                renderTodos();
+            }
+        }
+        
+        function deleteTodo(id) {
+            todos = todos.filter(t => t.id !== id);
+            saveTodos();
+            renderTodos();
+        }
+        
+        function filterTodos(filter) {
+            todoFilter = filter;
+            document.getElementById('filter-all').className = filter === 'all' ? 'px-3 py-1 rounded-lg bg-note-amber text-white text-sm' : 'px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm';
+            document.getElementById('filter-active').className = filter === 'active' ? 'px-3 py-1 rounded-lg bg-note-amber text-white text-sm' : 'px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm';
+            document.getElementById('filter-completed').className = filter === 'completed' ? 'px-3 py-1 rounded-lg bg-note-amber text-white text-sm' : 'px-3 py-1 rounded-lg bg-gray-100 text-gray-700 text-sm';
+            renderTodos();
+        }
+        
+        function clearCompleted() {
+            if (confirm('Ryd alle færdige opgaver?')) {
+                todos = todos.filter(t => !t.completed);
+                saveTodos();
+                renderTodos();
+            }
+        }
+        
+        function renderTodos() {
+            let filteredTodos = todos;
+            if (todoFilter === 'active') {
+                filteredTodos = todos.filter(t => !t.completed);
+            } else if (todoFilter === 'completed') {
+                filteredTodos = todos.filter(t => t.completed);
+            }
+            
+            const list = document.getElementById('todo-list');
+            const noTodos = document.getElementById('no-todos');
+            
+            // Update stats
+            const total = todos.length;
+            const done = todos.filter(t => t.completed).length;
+            document.getElementById('todo-total').textContent = total;
+            document.getElementById('todo-done').textContent = done;
+            document.getElementById('todo-remaining').textContent = total - done;
+            
+            // Show/hide clear completed
+            document.getElementById('clear-completed').classList.toggle('hidden', done === 0);
+            
+            if (filteredTodos.length === 0) {
+                list.innerHTML = '';
+                noTodos.classList.remove('hidden');
+                return;
+            }
+            
+            noTodos.classList.add('hidden');
+            
+            const priorityIcons = { high: '🔴', medium: '🟡', low: '🟢' };
+            
+            list.innerHTML = filteredTodos.map(todo => `
+                <div class="todo-item fade-in flex items-center gap-4 bg-white rounded-xl p-4 shadow ${todo.completed ? 'completed' : ''}">
+                    <button onclick="toggleTodo(${todo.id})" 
+                        class="w-8 h-8 rounded-full border-2 flex items-center justify-center text-lg
+                            ${todo.completed ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-note-amber'}">
+                        ${todo.completed ? '✓' : ''}
+                    </button>
+                    <span class="todo-text flex-1 text-lg ${todo.completed ? 'text-gray-400' : 'text-gray-800'}">
+                        ${escapeHtml(todo.text)}
+                    </span>
+                    <span title="Prioritet: ${todo.priority}">${priorityIcons[todo.priority]}</span>
+                    <button onclick="deleteTodo(${todo.id})" class="text-gray-400 hover:text-red-500 text-lg">
+                        🗑️
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+        
+        // Export data
+        function exportData() {
+            const data = {
+                notes: notes,
+                todos: todos,
+                exported: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `noter-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Utilities
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleDateString('da-DK', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+        
+        // Initialize
+        renderNotes();
+        renderTodos();
+    </script>
+</body>
+</html>
